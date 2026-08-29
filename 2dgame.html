@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Metro Runner: 2D City Dash (Single File Edition)</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Modern Neon Glassmorphism CSS for Metro Runner */
+        :root {
+            --bg-dark: #0a0c16;
+            --card-bg: rgba(18, 22, 38, 0.75);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-purple: #9d4edd;
+            --accent-pink: #ff007f;
+            --accent-gold: #ffb703;
+            --accent-green: #00e676;
+            --accent-red: #ff3366;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --font-main: 'Outfit', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: var(--font-main);
+            color: var(--text-primary);
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #0d0f19;
+        }
+
+        /* Glassmorphism HUD Overlay */
+        .hud-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .hud-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 12px 18px;
+            box-shadow: var(--card-shadow);
+            pointer-events: auto;
+        }
+
+        /* Vitals (Top-Left) */
+        .vitals-card {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 220px;
+        }
+
+        .vital-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vital-icon {
+            font-size: 1.2rem;
+        }
+
+        .bar-container {
+            position: relative;
+            flex: 1;
+            height: 18px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .health-fill {
+            background: linear-gradient(90deg, #ff3366, #ff6b8b);
+            box-shadow: 0 0 10px rgba(255, 51, 102, 0.6);
+        }
+
+        .energy-fill {
+            background: linear-gradient(90deg, #ffb703, #ffea00);
+            box-shadow: 0 0 10px rgba(255, 183, 3, 0.6);
+        }
+
+        .bar-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.65rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        /* HUD Top Center */
+        .hud-center {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .district-badge {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+        }
+
+        .toast-message {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            animation: fadeInDown 0.3s ease-out;
+        }
+
+        /* Economy Card (Top-Right) */
+        .economy-card {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .coin-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .coin-icon {
+            font-size: 1.4rem;
+        }
+
+        .coin-value {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--accent-gold);
+            text-shadow: 0 0 8px rgba(255, 183, 3, 0.5);
+        }
+
+        .quick-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Bottom Objective & Prompts */
+        .hud-bottom {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .interaction-prompt {
+            background: rgba(0, 242, 254, 0.15);
+            border: 1px solid var(--accent-cyan);
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            animation: bounce 1.5s infinite;
+        }
+
+        .key-badge {
+            background: var(--accent-cyan);
+            color: #000;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+        }
+
+        .objective-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 10px 20px;
+            width: 100%;
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        .objective-label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--accent-purple);
+            margin-bottom: 2px;
+        }
+
+        .objective-desc {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Touch Overlay for Mobile */
+        .touch-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        @media (max-width: 768px) {
+            .touch-overlay {
+                display: flex;
+            }
+        }
+
+        .dpad-left, .dpad-right {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .touch-btn {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .touch-btn.action {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            width: 70px;
+            font-size: 0.8rem;
+        }
+
+        .touch-btn.interact {
+            background: var(--accent-gold);
+            color: #000;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 7, 15, 0.8);
+            backdrop-filter: blur(16px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: rgba(20, 26, 46, 0.95);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            animation: modalScale 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-card.large {
+            max-width: 760px;
+            max-height: 85vh;
+        }
+
+        .modal-card.danger {
+            border-color: var(--accent-red);
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            text-align: center;
+            background: linear-gradient(135deg, #fff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: white;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .menu-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .menu-btn.primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            color: #000;
+            border: none;
+        }
+
+        .menu-btn.accent {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            border: none;
+        }
+
+        .menu-btn.danger {
+            background: rgba(255, 51, 102, 0.2);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .menu-btn.danger:hover {
+            background: var(--accent-red);
+            color: #fff;
+        }
+
+        .controls-hint {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.4;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+
+        /* Shop Grid */
+        .shop-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 242, 254, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .shop-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .shop-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-cyan);
+        }
+
+        .item-icon {
+            font-size: 2.2rem;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .item-name {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .item-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .item-buy-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .item-price {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        .buy-btn {
+            background: var(--accent-cyan);
+            color: #000;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .buy-btn.owned {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--text-secondary);
+            cursor: default;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes modalScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- HUD Layer -->
+        <div id="hud-overlay" class="hud-layer">
+            <!-- Top Left: Player Vitals -->
+            <div class="hud-card vitals-card">
+                <div class="vital-row">
+                    <span class="vital-icon">❤️</span>
+                    <div class="bar-container">
+                        <div id="health-bar" class="bar health-fill" style="width: 100%;"></div>
+                        <span id="health-text" class="bar-text">100 / 100</span>
+                    </div>
+                </div>
+                <div class="vital-row">
+                    <span class="vital-icon">⚡</span>
+                    <div class="bar-container">
+                        <div id="energy-bar" class="bar energy-fill" style="width: 100%;"></div>
+                        <span id="energy-text" class="bar-text">100 / 100</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Center: Current District & Badges -->
+            <div class="hud-center">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div id="heat-badge" class="district-badge hidden" style="border-color: var(--accent-red); color: var(--accent-red);">🚔 HEAT 0</div>
+                    <div id="level-badge" class="district-badge" style="border-color: var(--accent-gold); color: var(--accent-gold);">LVL 1</div>
+                    <div id="district-badge" class="district-badge">Downtown</div>
+                </div>
+                <div id="toast-message" class="toast-message hidden"></div>
+            </div>
+
+            <!-- Top Right: Coins & Quick Actions -->
+            <div class="hud-card economy-card">
+                <div class="coin-badge">
+                    <span class="coin-icon">🪙</span>
+                    <span id="coin-count" class="coin-value">0</span>
+                </div>
+                <div class="quick-controls">
+                    <button id="btn-audio" class="icon-btn" title="Toggle Audio (M)">🔊</button>
+                    <button id="btn-pause" class="icon-btn" title="Pause Game (Esc)">⏸️</button>
+                </div>
+            </div>
+
+            <!-- Bottom Center: Objective & Interaction Prompt -->
+            <div class="hud-bottom">
+                <div id="interaction-prompt" class="interaction-prompt hidden">
+                    <span class="key-badge">E</span> <span id="prompt-text">Interact</span>
+                </div>
+                <div class="objective-card">
+                    <span class="objective-label">OBJECTIVE</span>
+                    <span id="objective-text" class="objective-desc">Explore the city and test your controls!</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Touch Controls for Mobile/Tablet -->
+        <div id="touch-controls" class="touch-overlay">
+            <div class="dpad-left">
+                <button id="btn-left" class="touch-btn">◀</button>
+                <button id="btn-right" class="touch-btn">▶</button>
+            </div>
+            <div class="dpad-right">
+                <button id="btn-crouch" class="touch-btn">▼</button>
+                <button id="btn-jump" class="touch-btn action">JUMP</button>
+                <button id="btn-interact" class="touch-btn interact">E</button>
+            </div>
+        </div>
+
+        <!-- Pause Menu Overlay -->
+        <div id="pause-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <h2 class="modal-title">GAME PAUSED</h2>
+                <div class="menu-buttons">
+                    <button id="btn-resume" class="menu-btn primary">Resume Game</button>
+                    <button id="btn-shop-menu" class="menu-btn">City Shop (B)</button>
+                    <button id="btn-inventory-menu" class="menu-btn">Inventory (I)</button>
+                    <button id="btn-missions-menu" class="menu-btn">Missions (M)</button>
+                    <button id="btn-garage-menu" class="menu-btn">Garage (G)</button>
+                    <button id="btn-save-game" class="menu-btn accent">Save Progress</button>
+                    <button id="btn-restart" class="menu-btn danger">Restart Game</button>
+                </div>
+                <div class="controls-hint">
+                    <p><strong>Controls:</strong> A / D = Move Left/Right | Space = Jump | S = Crouch | E = Interact | Esc = Pause</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Modal -->
+        <div id="shop-modal" class="modal-overlay hidden">
+            <div class="modal-card large">
+                <div class="modal-header">
+                    <h2>🏙️ CITY SHOP</h2>
+                    <div class="shop-currency">🪙 <span id="shop-coin-count">0</span></div>
+                    <button class="close-btn btn-close-modal">✕</button>
+                </div>
+                <div class="shop-tabs">
+                    <button class="tab-btn active" data-tab="food">🍔 Food</button>
+                    <button class="tab-btn" data-tab="vehicles">🚗 Vehicles</button>
+                    <button class="tab-btn" data-tab="weapons">🔫 Weapons</button>
+                    <button class="tab-btn" data-tab="upgrades">⚡ Upgrades</button>
+                </div>
+                <div id="shop-items-grid" class="items-grid"></div>
+            </div>
+        </div>
+
+        <!-- Inventory Modal -->
+        <div id="inventory-modal" class="modal-overlay hidden">
+            <div class="modal-card large">
+                <div class="modal-header">
+                    <h2>🎒 INVENTORY</h2>
+                    <button class="close-btn btn-close-modal">✕</button>
+                </div>
+                <div class="shop-tabs inventory-tabs">
+                    <button class="tab-btn active" data-tab="all">ALL</button>
+                    <button class="tab-btn" data-tab="food">🍔 Food</button>
+                    <button class="tab-btn" data-tab="vehicles">🚗 Vehicles</button>
+                    <button class="tab-btn" data-tab="weapons">🔫 Weapons</button>
+                </div>
+                <div id="inventory-items-grid" class="items-grid"></div>
+            </div>
+        </div>
+
+        <!-- Missions Modal -->
+        <div id="missions-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h2>📜 CITY MISSIONS</h2>
+                    <button class="close-btn btn-close-modal">✕</button>
+                </div>
+                <div id="missions-list" class="missions-list"></div>
+            </div>
+        </div>
+
+        <!-- Vehicle Garage Modal -->
+        <div id="garage-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h2>🏎️ VEHICLE GARAGE</h2>
+                    <button class="close-btn btn-close-modal">✕</button>
+                </div>
+                <div id="garage-vehicles-list" class="garage-list"></div>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameover-modal" class="modal-overlay hidden">
+            <div class="modal-card danger">
+                <h1 class="modal-title">GAME OVER</h1>
+                <p>You ran out of health in Metro City!</p>
+                <div class="stats-summary">
+                    <p>Coins Collected: <span id="go-coins">0</span></p>
+                    <p>Distance Ran: <span id="go-distance">0m</span></p>
+                </div>
+                <button id="btn-respawn" class="menu-btn primary">Respawn Player</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Bundled Game Engine JavaScript -->
+    <script>
+        // 1. INPUT SYSTEM
+        class Input {
+            constructor() {
+                this.keys = { left: false, right: false, jump: false, crouch: false, interact: false, pause: false, shop: false, inventory: false, missions: false, garage: false };
+                this.justPressed = { jump: false, interact: false, pause: false, shop: false, inventory: false, missions: false, garage: false };
+                this.initKeyboardListeners();
+                this.initTouchListeners();
+            }
+            initKeyboardListeners() {
+                window.addEventListener('keydown', (e) => this.handleKeyChange(e.code, true));
+                window.addEventListener('keyup', (e) => this.handleKeyChange(e.code, false));
+            }
+            handleKeyChange(code, isPressed) {
+                switch (code) {
+                    case 'KeyA': case 'ArrowLeft': this.keys.left = isPressed; break;
+                    case 'KeyD': case 'ArrowRight': this.keys.right = isPressed; break;
+                    case 'Space': case 'ArrowUp': case 'KeyW':
+                        if (isPressed && !this.keys.jump) this.justPressed.jump = true;
+                        this.keys.jump = isPressed; break;
+                    case 'KeyS': case 'ArrowDown': this.keys.crouch = isPressed; break;
+                    case 'KeyE': if (isPressed && !this.keys.interact) this.justPressed.interact = true; this.keys.interact = isPressed; break;
+                    case 'Escape': if (isPressed && !this.keys.pause) this.justPressed.pause = true; this.keys.pause = isPressed; break;
+                    case 'KeyB': if (isPressed && !this.keys.shop) this.justPressed.shop = true; this.keys.shop = isPressed; break;
+                    case 'KeyI': if (isPressed && !this.keys.inventory) this.justPressed.inventory = true; this.keys.inventory = isPressed; break;
+                    case 'KeyM': if (isPressed && !this.keys.missions) this.justPressed.missions = true; this.keys.missions = isPressed; break;
+                    case 'KeyG': if (isPressed && !this.keys.garage) this.justPressed.garage = true; this.keys.garage = isPressed; break;
+                }
+            }
+            initTouchListeners() {
+                const bindTouchBtn = (id, keyName, isPulseKey = false) => {
+                    const btn = document.getElementById(id);
+                    if (!btn) return;
+                    const startHandler = (e) => { e.preventDefault(); if (isPulseKey) this.justPressed[keyName] = true; this.keys[keyName] = true; };
+                    const endHandler = (e) => { e.preventDefault(); this.keys[keyName] = false; };
+                    btn.addEventListener('touchstart', startHandler); btn.addEventListener('touchend', endHandler);
+                    btn.addEventListener('mousedown', startHandler); btn.addEventListener('mouseup', endHandler);
+                };
+                bindTouchBtn('btn-left', 'left'); bindTouchBtn('btn-right', 'right');
+                bindTouchBtn('btn-jump', 'jump', true); bindTouchBtn('btn-crouch', 'crouch'); bindTouchBtn('btn-interact', 'interact', true);
+            }
+            update() { for (const key in this.justPressed) this.justPressed[key] = false; }
+        }
+
+        // 2. CAMERA SYSTEM
+        class Camera {
+            constructor(viewportWidth, viewportHeight) {
+                this.x = 0; this.y = 0; this.viewportWidth = viewportWidth; this.viewportHeight = viewportHeight;
+                this.target = null; this.lerpSpeed = 0.08; this.leadX = 0; this.targetLeadX = 0;
+                this.shakeTimer = 0; this.shakeIntensity = 0; this.shakeOffsetX = 0; this.shakeOffsetY = 0;
+            }
+            setViewport(w, h) { this.viewportWidth = w; this.viewportHeight = h; }
+            follow(target) { this.target = target; }
+            shake(intensity = 10, duration = 0.3) { this.shakeIntensity = intensity; this.shakeTimer = duration; }
+            update(dt) {
+                if (this.target) {
+                    if (this.target.vx > 50) this.targetLeadX = 140;
+                    else if (this.target.vx < -50) this.targetLeadX = -140;
+                    else this.targetLeadX = 0;
+                    this.leadX += (this.targetLeadX - this.leadX) * 0.05;
+                    const targetX = this.target.x + this.leadX - this.viewportWidth * 0.35;
+                    const targetY = this.target.y - this.viewportHeight * 0.65;
+                    this.x += (targetX - this.x) * this.lerpSpeed;
+                    this.y += (targetY - this.y) * this.lerpSpeed;
+                    if (this.x < 0) this.x = 0;
+                }
+                if (this.shakeTimer > 0) {
+                    this.shakeTimer -= dt;
+                    this.shakeOffsetX = (Math.random() - 0.5) * 2 * this.shakeIntensity;
+                    this.shakeOffsetY = (Math.random() - 0.5) * 2 * this.shakeIntensity;
+                    if (this.shakeTimer <= 0) { this.shakeOffsetX = 0; this.shakeOffsetY = 0; }
+                }
+            }
+            getRenderX(worldX) { return Math.floor(worldX - this.x + this.shakeOffsetX); }
+            getRenderY(worldY) { return Math.floor(worldY - this.y + this.shakeOffsetY); }
+        }
+
+        // 3. SOUND SYNTHESIZER
+        class SoundEngine {
+            constructor() {
+                this.ctx = null; this.muted = false; this.isPlayingBgm = false; this.bgmTimer = null;
+                this.engineOsc = null; this.engineGain = null;
+            }
+            init() {
+                if (!this.ctx) { const AudioContext = window.AudioContext || window.webkitAudioContext; this.ctx = new AudioContext(); }
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            }
+            toggleMute() { this.muted = !this.muted; if (this.muted) { this.stopBgm(); this.stopEngine(); } else { this.startBgm(); } return this.muted; }
+            startBgm() {
+                if (this.muted || this.isPlayingBgm) return; this.init(); this.isPlayingBgm = true;
+                const notes = [130.81, 146.83, 164.81, 196.00, 220.00]; let noteIdx = 0;
+                this.bgmTimer = setInterval(() => {
+                    if (this.muted || !this.isPlayingBgm) return;
+                    const now = this.ctx.currentTime; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(notes[noteIdx], now); noteIdx = (noteIdx + 1) % notes.length;
+                    gain.gain.setValueAtTime(0.04, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.35);
+                }, 400);
+            }
+            stopBgm() { this.isPlayingBgm = false; if (this.bgmTimer) { clearInterval(this.bgmTimer); this.bgmTimer = null; } }
+            updateEngineSound(isDriving, speedRatio = 1.0) {
+                if (this.muted || !isDriving) { this.stopEngine(); return; }
+                this.init();
+                if (!this.engineOsc) {
+                    this.engineOsc = this.ctx.createOscillator(); this.engineGain = this.ctx.createGain();
+                    this.engineOsc.type = 'sawtooth'; this.engineGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+                    this.engineOsc.connect(this.engineGain); this.engineGain.connect(this.ctx.destination); this.engineOsc.start();
+                }
+                const targetFreq = 50 + speedRatio * 90;
+                this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.05);
+            }
+            stopEngine() { if (this.engineOsc) { try { this.engineOsc.stop(); this.engineOsc.disconnect(); } catch (e) {} this.engineOsc = null; this.engineGain = null; } }
+            playJump() { if (this.muted) return; this.init(); const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(160, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(460, this.ctx.currentTime + 0.15); gain.gain.setValueAtTime(0.25, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.15); }
+            playFootstep() { if (this.muted) return; this.init(); const bufferSize = this.ctx.sampleRate * 0.03; const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate); const output = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1; const whiteNoise = this.ctx.createBufferSource(); whiteNoise.buffer = buffer; const filter = this.ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(350, this.ctx.currentTime); const gain = this.ctx.createGain(); gain.gain.setValueAtTime(0.1, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.03); whiteNoise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination); whiteNoise.start(); }
+            playCoin() { if (this.muted) return; this.init(); const now = this.ctx.currentTime; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(987.77, now); osc.frequency.setValueAtTime(1318.51, now + 0.08); gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.25); }
+            playDamage() { if (this.muted) return; this.init(); const now = this.ctx.currentTime; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(160, now); osc.frequency.linearRampToValueAtTime(40, now + 0.25); gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.25); }
+            playBuy() { if (this.muted) return; this.init(); const now = this.ctx.currentTime; [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => { const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now + i * 0.05); gain.gain.setValueAtTime(0.2, now + i * 0.05); gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.1); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now + i * 0.05); osc.stop(now + i * 0.05 + 0.1); }); }
+        }
+
+        // 4. SAVE SYSTEM
+        class SaveSystem {
+            constructor() {
+                this.STORAGE_KEY = 'METRO_RUNNER_SAVE_V1';
+                this.defaultData = { coins: 0, playerX: 100, playerY: 0, health: 100, maxHealth: 100, energy: 100, maxEnergy: 100, level: 1, xp: 0, inventory: ['burger'], ownedVehicles: [], equippedVehicle: null, ownedWeapons: [], equippedWeapon: null, completedMissions: [] };
+            }
+            save(data) { try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ ...this.defaultData, ...data })); return true; } catch (e) { return false; } }
+            load() { try { const raw = localStorage.getItem(this.STORAGE_KEY); return raw ? { ...this.defaultData, ...JSON.parse(raw) } : { ...this.defaultData }; } catch (e) { return { ...this.defaultData }; } }
+        }
+
+        // 5. PLAYER ENTITY
+        class Player {
+            constructor(x, y) {
+                this.x = x; this.y = y; this.groundY = y;
+                this.normalWidth = 32; this.normalHeight = 64; this.crouchHeight = 36;
+                this.width = this.normalWidth; this.height = this.normalHeight;
+                this.vx = 0; this.vy = 0; this.speed = 320; this.jumpForce = -560; this.gravity = 1400; this.friction = 0.82; this.speedMultiplier = 1.0;
+                this.isGrounded = true; this.isCrouching = false; this.facingRight = true; this.state = 'IDLE';
+                this.health = 100; this.maxHealth = 100; this.energy = 100; this.maxEnergy = 100; this.isAlive = true;
+                this.iFrameTimer = 0; this.animTimer = 0; this.runCycle = 0; this.particles = []; this.currentVehicle = null;
+            }
+            update(dt, input, audioEngine) {
+                if (!this.isAlive) return;
+                if (this.iFrameTimer > 0) this.iFrameTimer -= dt;
+                let moveDir = 0;
+                if (input.keys.left) { moveDir -= 1; this.facingRight = false; }
+                if (input.keys.right) { moveDir += 1; this.facingRight = true; }
+                const currentSpeed = this.speed * this.speedMultiplier * (this.isCrouching ? 0.5 : 1.0);
+                if (moveDir !== 0) {
+                    this.vx = moveDir * currentSpeed;
+                    if (this.isGrounded && !this.isCrouching && !this.currentVehicle) {
+                        this.animTimer += dt * 12;
+                        if (Math.sin(this.animTimer) > 0.8 && Math.sin(this.animTimer - dt * 12) <= 0.8) {
+                            audioEngine.playFootstep(); this.spawnDustParticle(this.x + this.width / 2, this.y + this.height);
+                        }
+                    }
+                } else { this.vx *= this.friction; if (Math.abs(this.vx) < 5) this.vx = 0; }
+
+                if (input.keys.crouch && this.isGrounded && !this.currentVehicle) {
+                    if (!this.isCrouching) { this.isCrouching = true; this.height = this.crouchHeight; this.y += (this.normalHeight - this.crouchHeight); }
+                } else if (this.isCrouching) { this.isCrouching = false; this.y -= (this.normalHeight - this.crouchHeight); this.height = this.normalHeight; }
+
+                if (input.justPressed.jump && this.isGrounded && !this.isCrouching) {
+                    this.vy = this.jumpForce; this.isGrounded = false; audioEngine.playJump(); this.spawnJumpParticles(this.x + this.width / 2, this.y + this.height);
+                }
+                if (!this.isGrounded) this.vy += this.gravity * dt;
+                this.x += this.vx * dt; this.y += this.vy * dt;
+                if (this.x < 10) { this.x = 10; this.vx = 0; }
+                const activeHeight = this.isCrouching ? this.crouchHeight : this.normalHeight;
+                if (this.y + activeHeight >= this.groundY) {
+                    if (!this.isGrounded) { this.spawnLandingParticles(this.x + this.width / 2, this.groundY); audioEngine.playFootstep(); }
+                    this.y = this.groundY - activeHeight; this.vy = 0; this.isGrounded = true;
+                }
+                if (this.currentVehicle) this.state = 'DRIVING';
+                else if (!this.isGrounded) this.state = this.vy < 0 ? 'JUMPING' : 'FALLING';
+                else if (this.isCrouching) this.state = 'CROUCHING';
+                else if (Math.abs(this.vx) > 10) { this.state = 'RUNNING'; this.runCycle += dt * 14; }
+                else { this.state = 'IDLE'; this.runCycle = 0; }
+                this.updateParticles(dt);
+            }
+            takeDamage(amount, audioEngine) {
+                if (!this.isAlive || this.iFrameTimer > 0) return;
+                this.health -= amount; this.iFrameTimer = 1.0; audioEngine.playDamage();
+                if (this.health <= 0) { this.health = 0; this.isAlive = false; this.state = 'DEAD'; }
+            }
+            restoreHealth(amount) { this.health = Math.min(this.maxHealth, this.health + amount); }
+            restoreEnergy(amount) { this.energy = Math.min(this.maxEnergy, this.energy + amount); }
+            spawnDustParticle(px, py) { this.particles.push({ x: px, y: py - 2, vx: (Math.random() - 0.5) * 40, vy: -Math.random() * 30, radius: Math.random() * 3 + 2, alpha: 0.8, color: '#94a3b8' }); }
+            spawnJumpParticles(px, py) { for (let i = 0; i < 8; i++) this.particles.push({ x: px, y: py, vx: (Math.random() - 0.5) * 120, vy: -Math.random() * 50, radius: Math.random() * 4 + 2, alpha: 0.9, color: '#00f2fe' }); }
+            spawnLandingParticles(px, py) { for (let i = 0; i < 6; i++) this.particles.push({ x: px, y: py, vx: (Math.random() - 0.5) * 160, vy: -Math.random() * 40, radius: Math.random() * 3 + 2, alpha: 0.8, color: '#e2e8f0' }); }
+            updateParticles(dt) { for (let i = this.particles.length - 1; i >= 0; i--) { const p = this.particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= dt * 2.5; if (p.alpha <= 0) this.particles.splice(i, 1); } }
+            render(ctx, camera) {
+                const renderX = camera.getRenderX(this.x); const renderY = camera.getRenderY(this.y);
+                this.particles.forEach(p => { ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(camera.getRenderX(p.x), camera.getRenderY(p.y), p.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore(); });
+                const shadowY = camera.getRenderY(this.groundY); const shadowScale = Math.max(0.2, 1 - (this.groundY - (this.y + this.height)) / 200);
+                ctx.save(); ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'; ctx.beginPath(); ctx.ellipse(renderX + this.width / 2, shadowY, (this.width / 2 + 4) * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+                ctx.save(); ctx.translate(renderX + this.width / 2, renderY + this.height / 2);
+                if (this.currentVehicle) {
+                    ctx.save(); ctx.fillStyle = '#ff007f'; ctx.shadowColor = '#ff007f'; ctx.shadowBlur = 12; ctx.roundRect(-35, 10, 70, 24, 8); ctx.fill();
+                    ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(-22, 30, 10, 0, Math.PI * 2); ctx.arc(22, 30, 10, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+                }
+                if (this.iFrameTimer > 0 && Math.floor(this.iFrameTimer * 20) % 2 === 0) ctx.globalAlpha = 0.35;
+                if (!this.facingRight) ctx.scale(-1, 1);
+                const headRadius = 13; const bodyHeight = this.isCrouching ? 20 : 32; const bodyWidth = 18;
+                const legAngle = this.state === 'RUNNING' ? Math.sin(this.runCycle) * 0.75 : 0;
+                const armAngle = this.state === 'RUNNING' ? -Math.sin(this.runCycle) * 0.75 : 0;
+                ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-4, bodyHeight / 2 - 4); ctx.lineTo(-4 + Math.sin(-legAngle) * 16, bodyHeight / 2 + 18); ctx.stroke();
+                ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-2, -bodyHeight / 2 + 6); ctx.lineTo(-2 + Math.sin(-armAngle) * 14, -bodyHeight / 2 + 20); ctx.stroke();
+                ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.roundRect(-bodyWidth / 2, -bodyHeight / 2, bodyWidth, bodyHeight, 6); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#ff007f'; ctx.fillRect(-3, -bodyHeight / 2 + 6, 6, 10);
+                ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(4, bodyHeight / 2 - 4); ctx.lineTo(4 + Math.sin(legAngle) * 16, bodyHeight / 2 + 18); ctx.stroke();
+                ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(2, -bodyHeight / 2 + 6); ctx.lineTo(2 + Math.sin(armAngle) * 14, -bodyHeight / 2 + 20); ctx.stroke();
+                const headY = -bodyHeight / 2 - headRadius + 2; ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(0, headY, headRadius, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = '#00f2fe'; ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 8; ctx.fillRect(2, headY - 4, 10, 6); ctx.shadowBlur = 0; ctx.restore();
+            }
+        }
+
+        // 6. CITY ENVIRONMENT
+        class City {
+            constructor(groundY) {
+                this.groundY = groundY;
+                this.districts = [
+                    { id: 'downtown', name: 'Downtown Financial', startX: 0, length: 3000, themeColor: '#00f2fe', bgSky: '#070b14', signText: 'CITY CENTER' },
+                    { id: 'shopping', name: 'Shopping District', startX: 3000, length: 3000, themeColor: '#ff007f', bgSky: '#120919', signText: 'MALL AVENUE' },
+                    { id: 'food', name: 'Food & Diner Area', startX: 6000, length: 3000, themeColor: '#ffb703', bgSky: '#160d07', signText: 'FOOD BITES' },
+                    { id: 'residential', name: 'Residential Zone', startX: 9000, length: 3000, themeColor: '#38bdf8', bgSky: '#081116', signText: 'SUBURB HILLS' },
+                    { id: 'industrial', name: 'Industrial Sector', startX: 12000, length: 3000, themeColor: '#f97316', bgSky: '#181008', signText: 'FACTORY PARK' },
+                    { id: 'park', name: 'Central Park', startX: 15000, length: 3000, themeColor: '#10b981', bgSky: '#061610', signText: 'GREEN PARK' },
+                    { id: 'garage', name: 'Auto Garage Row', startX: 18000, length: 3000, themeColor: '#a855f7', bgSky: '#110a19', signText: 'GARAGE & TIRE' }
+                ];
+                this.stars = []; for (let i = 0; i < 120; i++) this.stars.push({ x: Math.random() * 2000, y: Math.random() * 350, radius: Math.random() * 1.5 + 0.5, alpha: Math.random() * 0.8 + 0.2 });
+                this.silhouettes = this.generateSilhouettes(50);
+                this.buildings = this.generateDistrictBuildings();
+                this.props = this.generateStreetProps();
+                this.lastDistrictId = null;
+            }
+            generateSilhouettes(count) { const list = []; let currX = 0; for (let i = 0; i < count; i++) { const w = Math.floor(Math.random() * 180 + 100); const h = Math.floor(Math.random() * 260 + 180); list.push({ x: currX, w, h }); currX += w + Math.floor(Math.random() * 30); } return list; }
+            generateDistrictBuildings() {
+                const list = [];
+                this.districts.forEach(d => {
+                    let currX = d.startX; const endX = d.startX + d.length;
+                    while (currX < endX) {
+                        const w = Math.floor(Math.random() * 140 + 120); const h = Math.floor(Math.random() * 220 + 160); let type = 'building';
+                        if (d.id === 'downtown') type = 'skyscraper'; else if (d.id === 'shopping') type = 'storefront'; else if (d.id === 'food') type = 'diner'; else if (d.id === 'residential') type = 'townhouse'; else if (d.id === 'industrial') type = 'factory'; else if (d.id === 'park') type = 'gazebo'; else if (d.id === 'garage') type = 'autobay';
+                        list.push({ x: currX, w, h, districtId: d.id, type: type, color: d.themeColor, sign: Math.random() > 0.4 ? d.signText : null });
+                        currX += w + Math.floor(Math.random() * 40 + 20);
+                    }
+                });
+                return list;
+            }
+            generateStreetProps() {
+                const props = [];
+                for (let x = 80; x < 21000; x += Math.random() * 200 + 150) {
+                    const district = this.getDistrictAt(x); let type = 'lamp'; const r = Math.random();
+                    if (district.id === 'park') type = r > 0.4 ? 'tree' : (r > 0.2 ? 'bench' : 'fountain');
+                    else if (district.id === 'food') type = r > 0.5 ? 'lamp' : (r > 0.25 ? 'bench' : 'trashcan');
+                    else if (district.id === 'industrial') type = r > 0.5 ? 'pipe' : (r > 0.25 ? 'hazard' : 'lamp');
+                    else type = r > 0.5 ? 'lamp' : (r > 0.3 ? 'hydrant' : 'trashcan');
+                    props.push({ x, type, districtId: district.id });
+                }
+                return props;
+            }
+            getDistrictAt(x) { for (const d of this.districts) if (x >= d.startX && x < d.startX + d.length) return d; return this.districts[0]; }
+            checkDistrictChange(playerX, uiController) {
+                const current = this.getDistrictAt(playerX);
+                if (current.id !== this.lastDistrictId) { if (this.lastDistrictId !== null) uiController.showToast(`🏙️ Entering ${current.name}`); this.lastDistrictId = current.id; }
+                return current;
+            }
+            render(ctx, camera) {
+                const width = camera.viewportWidth; const height = camera.viewportHeight; const currentDistrict = this.getDistrictAt(camera.x + width / 2);
+                const skyGradient = ctx.createLinearGradient(0, 0, 0, height); skyGradient.addColorStop(0, currentDistrict.bgSky); skyGradient.addColorStop(1, '#05070e'); ctx.fillStyle = skyGradient; ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#fef08a'; ctx.shadowColor = '#fef08a'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.arc(width - 150, 100, 32, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+                ctx.fillStyle = '#ffffff'; this.stars.forEach(s => { const sx = (s.x - camera.x * 0.05) % width; const renderSx = sx < 0 ? sx + width : sx; ctx.globalAlpha = s.alpha; ctx.beginPath(); ctx.arc(renderSx, s.y, s.radius, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#0f172a'; this.silhouettes.forEach(b => { const rx = Math.floor((b.x - camera.x * 0.2) % 6000); const renderX = rx < -300 ? rx + 6000 : rx; ctx.fillRect(renderX, this.groundY - b.h - 60, b.w, b.h + 60); });
+                this.buildings.forEach(b => {
+                    const rx = camera.getRenderX(b.x);
+                    if (rx > -b.w - 50 && rx < width + 50) {
+                        const ry = camera.getRenderY(this.groundY - b.h); ctx.fillStyle = '#1e293b'; ctx.fillRect(rx, ry, b.w, b.h); ctx.strokeStyle = b.color; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, b.w, b.h);
+                        if (b.type === 'skyscraper') { ctx.fillStyle = b.color; ctx.globalAlpha = 0.25; for (let wx = rx + 15; wx < rx + b.w - 15; wx += 22) for (let wy = ry + 20; wy < camera.getRenderY(this.groundY) - 30; wy += 30) ctx.fillRect(wx, wy, 12, 18); ctx.globalAlpha = 1.0; }
+                        else if (b.type === 'storefront' || b.type === 'diner' || b.type === 'autobay') { ctx.fillStyle = 'rgba(56, 189, 248, 0.15)'; ctx.fillRect(rx + 10, camera.getRenderY(this.groundY - 70), b.w - 20, 60); }
+                        if (b.sign) { ctx.save(); ctx.fillStyle = '#0f172a'; ctx.strokeStyle = b.color; ctx.lineWidth = 2; ctx.roundRect(rx + b.w / 2 - 45, ry + 15, 90, 26, 6); ctx.fill(); ctx.stroke(); ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 10; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(b.sign, rx + b.w / 2, ry + 32); ctx.restore(); }
+                    }
+                });
+                const roadTopY = camera.getRenderY(this.groundY); const roadHeight = height - roadTopY;
+                ctx.fillStyle = '#334155'; ctx.fillRect(0, roadTopY, width, 14); ctx.fillStyle = '#1e293b'; ctx.fillRect(0, roadTopY + 14, width, roadHeight - 14);
+                ctx.strokeStyle = '#475569'; ctx.lineWidth = 1; const tileOffset = (camera.x) % 40; for (let tx = -tileOffset; tx < width; tx += 40) { ctx.beginPath(); ctx.moveTo(tx, roadTopY); ctx.lineTo(tx, roadTopY + 14); ctx.stroke(); }
+                ctx.fillStyle = '#ffb703'; const dashOffset = (camera.x) % 60; for (let rx = -dashOffset; rx < width; rx += 60) ctx.fillRect(rx, roadTopY + 45, 35, 4);
+                this.props.forEach(p => {
+                    const rx = camera.getRenderX(p.x);
+                    if (rx > -50 && rx < width + 50) {
+                        if (p.type === 'lamp') { ctx.fillStyle = '#475569'; ctx.fillRect(rx, roadTopY - 110, 6, 110); ctx.fillStyle = currentDistrict.themeColor; ctx.shadowColor = currentDistrict.themeColor; ctx.shadowBlur = 12; ctx.fillRect(rx - 6, roadTopY - 115, 18, 5); ctx.shadowBlur = 0; }
+                        else if (p.type === 'tree') { ctx.fillStyle = '#451a03'; ctx.fillRect(rx + 8, roadTopY - 50, 10, 50); ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(rx + 13, roadTopY - 65, 26, 0, Math.PI * 2); ctx.fill(); }
+                        else if (p.type === 'bench') { ctx.fillStyle = '#78350f'; ctx.fillRect(rx, roadTopY - 18, 38, 6); ctx.fillStyle = '#334155'; ctx.fillRect(rx + 4, roadTopY - 12, 4, 12); ctx.fillRect(rx + 30, roadTopY - 12, 4, 12); }
+                        else if (p.type === 'hydrant') { ctx.fillStyle = '#ef4444'; ctx.fillRect(rx, roadTopY - 24, 14, 24); ctx.fillRect(rx - 3, roadTopY - 18, 20, 6); }
+                        else if (p.type === 'trashcan') { ctx.fillStyle = '#64748b'; ctx.fillRect(rx, roadTopY - 28, 18, 28); }
+                        else if (p.type === 'fountain') { ctx.fillStyle = '#38bdf8'; ctx.fillRect(rx, roadTopY - 35, 45, 35); }
+                    }
+                });
+            }
+        }
+
+        // 7. COIN ENTITY
+        class Coin {
+            constructor(x, y, tier = 'gold') {
+                this.x = x; this.y = y; this.baseY = y; this.tier = tier; this.collected = false;
+                switch (tier) {
+                    case 'silver': this.value = 5; this.radius = 10; this.color = '#cbd5e1'; this.glow = '#e2e8f0'; this.symbol = 'S'; break;
+                    case 'diamond': this.value = 50; this.radius = 14; this.color = '#00f2fe'; this.glow = '#38bdf8'; this.symbol = '◆'; break;
+                    case 'chest': this.value = 100; this.radius = 18; this.color = '#a855f7'; this.glow = '#f43f5e'; this.symbol = '📦'; break;
+                    case 'gold': default: this.value = 10; this.radius = 12; this.color = '#ffb703'; this.glow = '#ffea00'; this.symbol = '$'; break;
+                }
+                this.bobTime = Math.random() * Math.PI * 2; this.particles = [];
+            }
+            update(dt, player, audioEngine) {
+                if (this.collected) { this.updateParticles(dt); return 0; }
+                this.bobTime += dt * 5; this.y = this.baseY + Math.sin(this.bobTime) * 6;
+                const playerCenterX = player.x + player.width / 2; const playerCenterY = player.y + player.height / 2;
+                const dx = playerCenterX - this.x; const dy = playerCenterY - this.y; const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 180) { const pullSpeed = (1 - dist / 180) * 450; this.x += (dx / dist) * pullSpeed * dt; this.y += (dy / dist) * pullSpeed * dt; this.baseY = this.y; }
+                if (dist < player.width / 2 + this.radius) { this.collected = true; this.spawnSparkleParticles(); audioEngine.playCoin(); return this.value; }
+                return 0;
+            }
+            spawnSparkleParticles() { for (let i = 0; i < 10; i++) this.particles.push({ x: this.x, y: this.y, vx: (Math.random() - 0.5) * 180, vy: (Math.random() - 0.5) * 180, radius: Math.random() * 4 + 2, alpha: 1.0, color: this.color }); }
+            updateParticles(dt) { for (let i = this.particles.length - 1; i >= 0; i--) { const p = this.particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= dt * 3.0; if (p.alpha <= 0) this.particles.splice(i, 1); } }
+            render(ctx, camera) {
+                this.particles.forEach(p => { ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(camera.getRenderX(p.x), camera.getRenderY(p.y), p.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore(); });
+                if (this.collected) return;
+                const rx = camera.getRenderX(this.x); const ry = camera.getRenderY(this.y);
+                ctx.save(); ctx.fillStyle = this.color; ctx.shadowColor = this.glow; ctx.shadowBlur = 12;
+                if (this.tier === 'chest') { ctx.fillRect(rx - 14, ry - 12, 28, 24); ctx.fillStyle = '#fde047'; ctx.fillRect(rx - 4, ry - 4, 8, 8); }
+                else { ctx.beginPath(); ctx.arc(rx, ry, this.radius, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; ctx.beginPath(); ctx.arc(rx, ry, this.radius * 0.65, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ffffff'; ctx.font = `bold ${Math.floor(this.radius)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.symbol, rx, ry + 1); }
+                ctx.restore();
+            }
+        }
+
+        // 8. OBSTACLE ENTITY
+        class Obstacle {
+            constructor(x, y, type = 'barrier', movingSpeed = 0) {
+                this.x = x; this.y = y; this.type = type; this.vx = movingSpeed; this.hasHitPlayer = false; this.debrisParticles = [];
+                switch (type) {
+                    case 'barrier': this.width = 44; this.height = 48; this.damage = 15; break;
+                    case 'pothole': this.width = 55; this.height = 14; this.damage = 10; break;
+                    case 'traffic_cone': this.width = 26; this.height = 34; this.damage = 8; break;
+                    case 'overhead_pipe': this.width = 70; this.height = 30; this.damage = 20; break;
+                    case 'moving_car': case 'car': default: this.width = 105; this.height = 52; this.damage = 30; break;
+                }
+            }
+            update(dt, player, audioEngine, camera) {
+                if (this.vx !== 0) this.x += this.vx * dt;
+                this.updateDebris(dt);
+                if (!player.isAlive || player.iFrameTimer > 0) return;
+                if (player.x < this.x + this.width && player.x + player.width > this.x && player.y < this.y + this.height && player.y + player.height > this.y) {
+                    player.takeDamage(this.damage, audioEngine); camera.shake(15, 0.3); this.spawnDebris(); player.vx = player.facingRight ? -240 : 240; player.vy = -200;
+                }
+            }
+            spawnDebris() { for (let i = 0; i < 12; i++) this.debrisParticles.push({ x: this.x + this.width / 2, y: this.y + this.height / 2, vx: (Math.random() - 0.5) * 220, vy: (Math.random() - 0.5) * 180, radius: Math.random() * 4 + 2, alpha: 1.0, color: this.type === 'moving_car' ? '#ef4444' : '#f97316' }); }
+            updateDebris(dt) { for (let i = this.debrisParticles.length - 1; i >= 0; i--) { const p = this.debrisParticles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= dt * 2.5; if (p.alpha <= 0) this.debrisParticles.splice(i, 1); } }
+            render(ctx, camera) {
+                this.debrisParticles.forEach(p => { ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(camera.getRenderX(p.x), camera.getRenderY(p.y), p.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore(); });
+                const rx = camera.getRenderX(this.x); const ry = camera.getRenderY(this.y);
+                ctx.save();
+                if (this.type === 'barrier') { ctx.fillStyle = '#f97316'; ctx.fillRect(rx, ry, this.width, this.height); ctx.fillStyle = '#ffffff'; ctx.fillRect(rx + 4, ry + 10, this.width - 8, 10); ctx.fillRect(rx + 4, ry + 28, this.width - 8, 8); }
+                else if (this.type === 'pothole') { ctx.fillStyle = '#090d16'; ctx.beginPath(); ctx.ellipse(rx + this.width / 2, ry + this.height / 2, this.width / 2, this.height / 2, 0, 0, Math.PI * 2); ctx.fill(); }
+                else if (this.type === 'traffic_cone') { ctx.fillStyle = '#f97316'; ctx.beginPath(); ctx.moveTo(rx + this.width / 2, ry); ctx.lineTo(rx + this.width, ry + this.height); ctx.lineTo(rx, ry + this.height); ctx.closePath(); ctx.fill(); }
+                else if (this.type === 'overhead_pipe') { ctx.fillStyle = '#e11d48'; ctx.fillRect(rx, ry, this.width, this.height); ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('DUCK!', rx + this.width / 2, ry + 18); }
+                else { ctx.fillStyle = '#ef4444'; ctx.shadowColor = '#f43f5e'; ctx.shadowBlur = 10; ctx.roundRect(rx, ry, this.width, this.height, 10); ctx.fill(); ctx.fillStyle = '#38bdf8'; ctx.fillRect(rx + 20, ry + 8, this.width - 40, 18); ctx.fillStyle = '#fde047'; ctx.fillRect(rx + (this.vx < 0 ? 4 : this.width - 12), ry + 32, 8, 12); }
+                ctx.restore();
+            }
+        }
+
+        // 9. VEHICLE ENTITY
+        class Vehicle {
+            constructor(x, y, type = 'bicycle') {
+                this.x = x; this.y = y; this.type = type; this.isOccupied = false;
+                switch (type) {
+                    case 'bicycle': this.name = 'City Bicycle'; this.speedMultiplier = 1.2; this.width = 64; this.height = 42; this.icon = '🚲'; this.color = '#38bdf8'; break;
+                    case 'motorcycle': this.name = 'Neon Motorcycle'; this.speedMultiplier = 1.8; this.width = 76; this.height = 46; this.icon = '🏍️'; this.color = '#a855f7'; break;
+                    case 'car': this.name = 'Sedan Car'; this.speedMultiplier = 2.2; this.width = 105; this.height = 54; this.icon = '🚗'; this.color = '#3b82f6'; break;
+                    case 'sportscar': default: this.name = 'Sports Car'; this.speedMultiplier = 2.8; this.width = 120; this.height = 50; this.icon = '🏎️'; this.color = '#ff007f'; break;
+                }
+            }
+            isPlayerNear(player) { return Math.abs((player.x + player.width / 2) - (this.x + this.width / 2)) < 70 && player.isGrounded; }
+            update(dt, player) { if (this.isOccupied) { this.x = player.x - 10; this.y = player.y + player.height - this.height; } }
+            render(ctx, camera) {
+                if (this.isOccupied) return;
+                const rx = camera.getRenderX(this.x); const ry = camera.getRenderY(this.y);
+                ctx.save(); ctx.fillStyle = this.color; ctx.shadowColor = this.color; ctx.shadowBlur = 10;
+                if (this.type === 'bicycle') { ctx.strokeStyle = this.color; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(rx + 15, ry + 28, 14, 0, Math.PI * 2); ctx.arc(rx + 48, ry + 28, 14, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(rx + 15, ry + 28); ctx.lineTo(rx + 32, ry + 12); ctx.lineTo(rx + 48, ry + 28); ctx.stroke(); }
+                else if (this.type === 'motorcycle') { ctx.roundRect(rx + 10, ry + 12, this.width - 20, 20, 6); ctx.fill(); ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(rx + 16, ry + 32, 12, 0, Math.PI * 2); ctx.arc(rx + 60, ry + 32, 12, 0, Math.PI * 2); ctx.fill(); }
+                else { ctx.roundRect(rx, ry, this.width, this.height, 10); ctx.fill(); ctx.fillStyle = '#38bdf8'; ctx.fillRect(rx + 20, ry + 8, this.width - 40, 18); ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(rx + 22, ry + this.height - 4, 12, 0, Math.PI * 2); ctx.arc(rx + this.width - 22, ry + this.height - 4, 12, 0, Math.PI * 2); ctx.fill(); }
+                ctx.shadowBlur = 0; ctx.restore();
+            }
+        }
+
+        // 10. NPC ENTITY
+        class NPC {
+            constructor(x, y, name = 'Citizen') {
+                this.x = x; this.y = y; this.startX = x; this.name = name; this.width = 28; this.height = 58;
+                this.patrolDistance = 250; this.minX = x - 250; this.maxX = x + 250; this.vx = (Math.random() > 0.5 ? 1 : -1) * (35 + Math.random() * 25); this.facingRight = this.vx > 0;
+                this.walkCycle = Math.random() * Math.PI * 2; this.shirtColor = `hsl(${Math.random() * 360}, 65%, 50%)`; this.skinColor = Math.random() > 0.5 ? '#fde047' : '#78350f';
+                this.generalDialogue = ["Nice day in Metro City!", "Be careful around dynamic traffic!", "Check out the Shopping District stores!", "Central Park is so relaxing!", "Keep collecting those shiny coins!"];
+                this.vehicleDialogue = ["Whoa, awesome ride!", "Cool vehicle! Drive safely!", "That engine sounds fast!"];
+                this.currentSpeech = null; this.speechTimer = 0;
+            }
+            update(dt, player, gameState) {
+                this.x += this.vx * dt; this.walkCycle += dt * 7;
+                if (this.x <= this.minX) { this.x = this.minX; this.vx = Math.abs(this.vx); this.facingRight = true; }
+                else if (this.x >= this.maxX) { this.x = this.maxX; this.vx = -Math.abs(this.vx); this.facingRight = false; }
+                const dx = Math.abs((player.x + player.width / 2) - (this.x + this.width / 2));
+                if (dx < 65 && this.speechTimer <= 0) {
+                    this.currentSpeech = player.currentVehicle ? this.vehicleDialogue[Math.floor(Math.random() * this.vehicleDialogue.length)] : this.generalDialogue[Math.floor(Math.random() * this.generalDialogue.length)];
+                    this.speechTimer = 3.5;
+                }
+                if (this.speechTimer > 0) { this.speechTimer -= dt; if (this.speechTimer <= 0) this.currentSpeech = null; }
+            }
+            render(ctx, camera) {
+                const rx = camera.getRenderX(this.x); const ry = camera.getRenderY(this.y);
+                ctx.save(); ctx.translate(rx + this.width / 2, ry + this.height / 2); if (!this.facingRight) ctx.scale(-1, 1);
+                ctx.fillStyle = this.shirtColor; ctx.roundRect(-10, -12, 20, 26, 4); ctx.fill();
+                ctx.fillStyle = this.skinColor; ctx.beginPath(); ctx.arc(0, -20, 10, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 4; const legOffset = Math.sin(this.walkCycle) * 8; ctx.beginPath(); ctx.moveTo(-4, 14); ctx.lineTo(-4 + legOffset, 28); ctx.moveTo(4, 14); ctx.lineTo(4 - legOffset, 28); ctx.stroke();
+                ctx.restore();
+                if (this.currentSpeech) {
+                    ctx.save(); ctx.fillStyle = 'rgba(15, 23, 42, 0.92)'; ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 1.5; ctx.roundRect(rx - 55, ry - 38, 140, 26, 8); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(this.currentSpeech, rx + 15, ry - 21); ctx.restore();
+                }
+            }
+        }
+
+        // 11. SHOP SYSTEM
+        class ShopSystem {
+            constructor() {
+                this.catalog = [
+                    { id: 'burger', name: 'Burger', category: 'food', price: 50, icon: '🍔', desc: '+20 Health', effect: { type: 'health', value: 20 } },
+                    { id: 'pizza', name: 'Pizza Slice', category: 'food', price: 90, icon: '🍕', desc: '+40 Health', effect: { type: 'health', value: 40 } },
+                    { id: 'sandwich', name: 'Club Sandwich', category: 'food', price: 65, icon: '🥪', desc: '+30 Health', effect: { type: 'health', value: 30 } },
+                    { id: 'drink', name: 'Energy Drink', category: 'food', price: 40, icon: '🥤', desc: '+25 Energy', effect: { type: 'energy', value: 25 } },
+                    { id: 'bicycle', name: 'Bicycle', category: 'vehicles', price: 500, icon: '🚲', desc: 'Speed: 1.2x' },
+                    { id: 'motorcycle', name: 'Motorcycle', category: 'vehicles', price: 1500, icon: '🏍️', desc: 'Speed: 1.8x' },
+                    { id: 'car', name: 'Sedan Car', category: 'vehicles', price: 3000, icon: '🚗', desc: 'Speed: 2.2x' },
+                    { id: 'sportscar', name: 'Sports Car', category: 'vehicles', price: 6000, icon: '🏎️', desc: 'Speed: 2.8x' },
+                    { id: 'pistol', name: 'Pistol', category: 'weapons', price: 500, icon: '🔫', desc: 'Basic ranged weapon' },
+                    { id: 'shotgun', name: 'Shotgun', category: 'weapons', price: 1200, icon: '💥', desc: 'High damage shotgun' },
+                    { id: 'smg', name: 'Neon SMG', category: 'weapons', price: 2500, icon: '⚡', desc: 'Rapid fire submachine gun' },
+                    { id: 'max_health', name: 'Health Boost', category: 'upgrades', price: 800, icon: '❤️', desc: '+25 Permanent Max Health', effect: { type: 'maxHealth', value: 25 } },
+                    { id: 'max_energy', name: 'Stamina Boost', category: 'upgrades', price: 700, icon: '⚡', desc: '+25 Permanent Max Energy', effect: { type: 'maxEnergy', value: 25 } }
+                ];
+            }
+            getItemsByCategory(cat) { return this.catalog.filter(i => i.category === cat); }
+            getItemById(id) { return this.catalog.find(i => i.id === id); }
+            isOwned(item, gameState) { if (item.category === 'vehicles') return gameState.ownedVehicles.includes(item.id); if (item.category === 'weapons') return gameState.ownedWeapons.includes(item.id); return false; }
+            buyItem(itemId, gameState, audioEngine) {
+                const item = this.getItemById(itemId); if (!item) return { success: false, message: 'Item not found' };
+                if (this.isOwned(item, gameState)) return { success: false, message: 'Item already owned!' };
+                if (gameState.coins < item.price) return { success: false, message: 'Not enough coins!' };
+                gameState.coins -= item.price; audioEngine.playBuy();
+                if (item.category === 'food') gameState.inventory.push(item.id);
+                else if (item.category === 'vehicles') { if (!gameState.ownedVehicles.includes(item.id)) gameState.ownedVehicles.push(item.id); }
+                else if (item.category === 'weapons') { if (!gameState.ownedWeapons.includes(item.id)) gameState.ownedWeapons.push(item.id); }
+                else if (item.category === 'upgrades') { if (item.effect.type === 'maxHealth') { gameState.maxHealth += item.effect.value; gameState.health += item.effect.value; } else if (item.effect.type === 'maxEnergy') { gameState.maxEnergy += item.effect.value; gameState.energy += item.effect.value; } }
+                return { success: true, message: `Purchased ${item.name}!` };
+            }
+        }
+
+        // 12. INVENTORY SYSTEM
+        class InventorySystem {
+            getAllItems(gameState, shopSystem) {
+                const list = [];
+                gameState.inventory.forEach((id, idx) => { const i = shopSystem.getItemById(id); if (i) list.push({ ...i, invIndex: idx, isConsumable: true }); });
+                gameState.ownedVehicles.forEach(id => { const i = shopSystem.getItemById(id); if (i) list.push({ ...i, isVehicle: true, isEquipped: gameState.equippedVehicle === id }); });
+                gameState.ownedWeapons.forEach(id => { const i = shopSystem.getItemById(id); if (i) list.push({ ...i, isWeapon: true, isEquipped: gameState.equippedWeapon === id }); });
+                return list;
+            }
+            useFoodItem(invIndex, player, gameState, shopSystem, audioEngine) {
+                if (invIndex < 0 || invIndex >= gameState.inventory.length) return false;
+                const item = shopSystem.getItemById(gameState.inventory[invIndex]);
+                if (item && item.category === 'food') {
+                    if (item.effect.type === 'health') player.restoreHealth(item.effect.value);
+                    else if (item.effect.type === 'energy') player.restoreEnergy(item.effect.value);
+                    audioEngine.playBuy(); gameState.inventory.splice(invIndex, 1); return true;
+                }
+                return false;
+            }
+            equipVehicle(vehicleId, player, gameState) {
+                if (gameState.equippedVehicle === vehicleId) { gameState.equippedVehicle = null; player.speedMultiplier = 1.0; player.currentVehicle = null; return 'Unequipped vehicle'; }
+                gameState.equippedVehicle = vehicleId; const speedMap = { bicycle: 1.2, motorcycle: 1.8, car: 2.2, sportscar: 2.8 };
+                player.speedMultiplier = speedMap[vehicleId] || 1.2; player.currentVehicle = vehicleId; return `Equipped ${vehicleId}!`;
+            }
+            equipWeapon(weaponId, gameState) { if (gameState.equippedWeapon === weaponId) { gameState.equippedWeapon = null; return 'Unequipped weapon'; } gameState.equippedWeapon = weaponId; return `Equipped ${weaponId}!`; }
+        }
+
+        // 13. HEALTH & FOOD SYSTEM
+        class HealthFoodSystem {
+            update(dt, player) {
+                if (!player.isAlive) return;
+                if (player.state === 'RUNNING') player.energy = Math.max(0, player.energy - dt * 3.5);
+                else if (player.state === 'IDLE') player.energy = Math.min(player.maxEnergy, player.energy + dt * 12);
+                if (player.energy <= 0) player.speedMultiplier = Math.min(player.speedMultiplier, 0.65);
+            }
+        }
+
+        // 14. MISSIONS SYSTEM
+        class MissionSystem {
+            constructor() {
+                this.missions = [
+                    { id: 'm1', title: 'Coin Collector', description: 'Collect 100 total coins.', rewardCoins: 250, rewardXp: 300, targetType: 'coins', targetAmount: 100, progress: 0, completed: false },
+                    { id: 'm2', title: 'Urban Marathon', description: 'Run 1,000 meters.', rewardCoins: 500, rewardXp: 500, targetType: 'distance', targetAmount: 1000, progress: 0, completed: false },
+                    { id: 'm3', title: 'Shopping Discovery', description: 'Explore Shopping District.', rewardCoins: 300, rewardXp: 400, targetType: 'explore_shopping', targetAmount: 1, progress: 0, completed: false },
+                    { id: 'm4', title: 'Wheelman', description: 'Buy or equip your first vehicle.', rewardCoins: 400, rewardXp: 600, targetType: 'vehicle', targetAmount: 1, progress: 0, completed: false },
+                    { id: 'm5', title: 'Food Courier', description: 'Consume 3 food items.', rewardCoins: 350, rewardXp: 450, targetType: 'food_consumed', targetAmount: 3, progress: 0, completed: false },
+                    { id: 'm6', title: 'City Survivor', description: 'Survive for 300 seconds (5 mins).', rewardCoins: 1000, rewardXp: 1200, targetType: 'survive_time', targetAmount: 300, progress: 0, completed: false }
+                ];
+            }
+            getActiveMission() { return this.missions.find(m => !m.completed) || this.missions[this.missions.length - 1]; }
+            checkProgress(gameState, distanceMeters, survivalSeconds, currentDistrict, uiController) {
+                let xpGained = 0;
+                this.missions.forEach(m => {
+                    if (m.completed) return;
+                    if (m.targetType === 'coins') m.progress = gameState.coins;
+                    else if (m.targetType === 'distance') m.progress = Math.floor(distanceMeters);
+                    else if (m.targetType === 'explore_shopping') { if (currentDistrict.id === 'shopping') m.progress = 1; }
+                    else if (m.targetType === 'vehicle') m.progress = gameState.ownedVehicles.length;
+                    else if (m.targetType === 'survive_time') m.progress = Math.floor(survivalSeconds);
+                    if (m.progress >= m.targetAmount) { m.completed = true; gameState.coins += m.rewardCoins; xpGained += m.rewardXp; uiController.showToast(`🎉 Mission Completed: ${m.title}! +${m.rewardCoins} Coins`); }
+                });
+                if (xpGained > 0) this.addXP(gameState, xpGained, uiController);
+            }
+            addXP(gameState, amount, uiController) {
+                if (!gameState.xp) gameState.xp = 0; if (!gameState.level) gameState.level = 1;
+                gameState.xp += amount; const nextLevelXp = gameState.level * 600;
+                if (gameState.xp >= nextLevelXp) { gameState.level += 1; uiController.showToast(`🌟 LEVEL UP! You reached Level ${gameState.level}!`); }
+            }
+        }
+
+        // 15. WEATHER SYSTEM
+        class WeatherSystem {
+            constructor() {
+                this.states = ['DAY', 'SUNSET', 'NIGHT', 'RAIN']; this.currentIdx = 2; this.timer = 0; this.cycleDuration = 90;
+                this.raindrops = []; for (let i = 0; i < 150; i++) this.raindrops.push({ x: Math.random() * 2000, y: Math.random() * 800, length: Math.random() * 18 + 10, vy: Math.random() * 400 + 500, vx: -Math.random() * 80 - 40 });
+            }
+            update(dt) { this.timer += dt; if (this.timer >= this.cycleDuration) { this.timer = 0; this.currentIdx = (this.currentIdx + 1) % this.states.length; } if (this.getCurrentState() === 'RAIN') { this.raindrops.forEach(r => { r.y += r.vy * dt; r.x += r.vx * dt; if (r.y > 900) { r.y = -20; r.x = Math.random() * 2000; } }); } }
+            getCurrentState() { return this.states[this.currentIdx]; }
+            renderRain(ctx, camera) {
+                if (this.getCurrentState() !== 'RAIN') return;
+                ctx.save(); ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)'; ctx.lineWidth = 1.5;
+                this.raindrops.forEach(r => { const rx = (r.x - camera.x * 0.8) % camera.viewportWidth; const renderX = rx < 0 ? rx + camera.viewportWidth : rx; ctx.beginPath(); ctx.moveTo(renderX, r.y); ctx.lineTo(renderX + r.vx * 0.04, r.y + r.length); ctx.stroke(); });
+                ctx.restore();
+            }
+        }
+
+        // 16. DELIVERY JOB SYSTEM
+        class DeliveryJobSystem {
+            constructor() { this.activeJob = null; this.timer = 0; }
+            startJob(playerX, npcs) {
+                if (this.activeJob) return { success: false, message: 'Delivery already in progress!' };
+                const validNpcs = npcs.filter(n => n.x > playerX + 400); if (validNpcs.length === 0) return { success: false, message: 'No customer available!' };
+                this.activeJob = { targetNpc: validNpcs[Math.floor(Math.random() * validNpcs.length)], timeLimit: 45, rewardCoins: 350 };
+                this.timer = 45; return { success: true, message: `🍕 Delivery Job Accepted! Deliver pizza to target in 45s!` };
+            }
+            update(dt, player, gameState, uiController, audioEngine) {
+                if (!this.activeJob) return;
+                this.timer -= dt; if (this.timer <= 0) { this.activeJob = null; uiController.showToast('❌ Delivery Job Failed! Time expired.'); return; }
+                const target = this.activeJob.targetNpc; if (Math.abs((player.x + player.width / 2) - (target.x + target.width / 2)) < 60) {
+                    gameState.coins += 350; audioEngine.playBuy(); uiController.showToast(`🎉 Pizza Delivered! Earned +350 Coins!`); this.activeJob = null;
+                }
+            }
+            renderMarker(ctx, camera) { if (!this.activeJob) return; const rx = camera.getRenderX(this.activeJob.targetNpc.x); const ry = camera.getRenderY(this.activeJob.targetNpc.y - 45); ctx.save(); ctx.fillStyle = '#ffb703'; ctx.shadowColor = '#ffea00'; ctx.shadowBlur = 15; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🍕', rx + 14, ry); ctx.restore(); }
+        }
+
+        // 17. POLICE CHASE SYSTEM
+        class PoliceChaseSystem {
+            constructor() { this.heatLevel = 0; this.heatTimer = 0; this.policeCruisers = []; }
+            addHeat(amount) { this.heatLevel = Math.min(3, this.heatLevel + amount); this.heatTimer = 30; }
+            update(dt, player, audioEngine, camera) {
+                if (this.heatLevel === 0) return;
+                this.heatTimer -= dt; if (this.heatTimer <= 0) { this.heatLevel = Math.max(0, this.heatLevel - 1); if (this.heatLevel > 0) this.heatTimer = 20; }
+                if (player.currentVehicle === 'sportscar' && Math.abs(player.vx) > 500 && Math.random() < 0.005) this.addHeat(1);
+                if (this.heatLevel >= 2 && this.policeCruisers.length < 2 && Math.random() < 0.02) {
+                    this.policeCruisers.push({ x: player.x + (Math.random() > 0.5 ? 900 : -900), y: player.groundY - 50, width: 105, height: 52, vx: player.vx > 0 ? 380 : -380, sirenTimer: 0 });
+                }
+                for (let i = this.policeCruisers.length - 1; i >= 0; i--) {
+                    const p = this.policeCruisers[i]; p.x += p.vx * dt; p.sirenTimer += dt * 10;
+                    if (player.x < p.x + p.width && player.x + player.width > p.x && player.y < p.y + p.height && player.y + player.height > p.y && player.iFrameTimer <= 0) {
+                        player.takeDamage(25, audioEngine); camera.shake(16, 0.35); player.vx = -player.vx * 0.5;
+                    }
+                    if (Math.abs(p.x - player.x) > 1500) this.policeCruisers.splice(i, 1);
+                }
+            }
+            render(ctx, camera) {
+                this.policeCruisers.forEach(p => {
+                    const rx = camera.getRenderX(p.x); const ry = camera.getRenderY(p.y);
+                    ctx.save(); ctx.fillStyle = '#0f172a'; ctx.roundRect(rx, ry, p.width, p.height, 8); ctx.fill();
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(rx + 25, ry, 55, p.height);
+                    const isRed = Math.sin(p.sirenTimer) > 0; ctx.fillStyle = isRed ? '#ef4444' : '#3b82f6'; ctx.shadowColor = isRed ? '#ef4444' : '#3b82f6'; ctx.shadowBlur = 15; ctx.fillRect(rx + 45, ry - 8, 15, 8); ctx.restore();
+                });
+            }
+        }
+
+        // 18. UI CONTROLLER
+        class UIController {
+            constructor() {
+                this.healthBar = document.getElementById('health-bar'); this.healthText = document.getElementById('health-text');
+                this.energyBar = document.getElementById('energy-bar'); this.energyText = document.getElementById('energy-text');
+                this.coinCount = document.getElementById('coin-count'); this.districtBadge = document.getElementById('district-badge');
+                this.toastMessage = document.getElementById('toast-message'); this.objectiveDesc = document.getElementById('objective-text');
+                this.interactionPrompt = document.getElementById('interaction-prompt');
+                this.pauseModal = document.getElementById('pause-modal'); this.shopModal = document.getElementById('shop-modal');
+                this.inventoryModal = document.getElementById('inventory-modal'); this.missionsModal = document.getElementById('missions-modal');
+                this.garageModal = document.getElementById('garage-modal'); this.gameoverModal = document.getElementById('gameover-modal');
+                this.toastTimer = 0;
+            }
+            updateHUD(player, gameState, districtName, activeMission) {
+                const healthPercent = Math.max(0, (player.health / player.maxHealth) * 100); this.healthBar.style.width = `${healthPercent}%`; this.healthText.textContent = `${Math.ceil(player.health)} / ${player.maxHealth}`;
+                const energyPercent = Math.max(0, (player.energy / player.maxEnergy) * 100); this.energyBar.style.width = `${energyPercent}%`; this.energyText.textContent = `${Math.ceil(player.energy)} / ${player.maxEnergy}`;
+                this.coinCount.textContent = gameState.coins.toLocaleString();
+                if (this.districtBadge.textContent !== districtName) this.districtBadge.textContent = districtName;
+                const levelBadge = document.getElementById('level-badge'); if (levelBadge && player) levelBadge.textContent = `LVL ${gameState.level || 1}`;
+                if (activeMission) this.objectiveDesc.textContent = `${activeMission.title}: ${activeMission.description} (${activeMission.progress}/${activeMission.targetAmount})`;
+                if (this.toastTimer > 0) { this.toastTimer -= 0.016; if (this.toastTimer <= 0) this.toastMessage.classList.add('hidden'); }
+            }
+            showCoinPopup(amount) {
+                const popup = document.createElement('div'); popup.className = 'toast-message'; popup.style.position = 'fixed'; popup.style.top = '70px'; popup.style.right = '40px'; popup.style.color = '#ffea00'; popup.style.borderColor = '#ffb703'; popup.style.pointerEvents = 'none'; popup.textContent = `+${amount} Coins!`; document.body.appendChild(popup);
+                setTimeout(() => popup.remove(), 800);
+            }
+            showToast(msg) { this.toastMessage.textContent = msg; this.toastMessage.classList.remove('hidden'); this.toastTimer = 3.5; }
+            setPrompt(show, text = 'Interact') { if (show) { document.getElementById('prompt-text').textContent = text; this.interactionPrompt.classList.remove('hidden'); } else this.interactionPrompt.classList.add('hidden'); }
+            toggleModal(modal, show) { if (show) modal.classList.remove('hidden'); else modal.classList.add('hidden'); }
+            renderShop(shopSystem, gameState, onBuyCallback) {
+                document.getElementById('shop-coin-count').textContent = gameState.coins.toLocaleString(); const grid = document.getElementById('shop-items-grid'); grid.innerHTML = '';
+                const activeTab = document.querySelector('.shop-tabs .tab-btn.active')?.dataset.tab || 'food';
+                shopSystem.getItemsByCategory(activeTab).forEach(item => {
+                    const owned = shopSystem.isOwned(item, gameState); const card = document.createElement('div'); card.className = 'shop-card';
+                    card.innerHTML = `<div class="item-icon">${item.icon}</div><div class="item-name">${item.name}</div><div class="item-desc">${item.desc}</div><div class="item-buy-row"><span class="item-price">🪙 ${item.price}</span><button class="buy-btn ${owned ? 'owned' : ''}">${owned ? 'OWNED' : 'Buy'}</button></div>`;
+                    if (!owned) card.querySelector('.buy-btn').addEventListener('click', () => onBuyCallback(item.id)); grid.appendChild(card);
+                });
+            }
+            renderInventory(inventorySystem, gameState, shopSystem, onActionCallback) {
+                const grid = document.getElementById('inventory-items-grid'); grid.innerHTML = ''; const activeTab = document.querySelector('.inventory-tabs .tab-btn.active')?.dataset.tab || 'all';
+                let items = inventorySystem.getAllItems(gameState, shopSystem); if (activeTab !== 'all') items = items.filter(i => i.category === activeTab);
+                if (items.length === 0) { grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 20px;">No items in this category!</p>'; return; }
+                items.forEach(item => {
+                    const card = document.createElement('div'); card.className = 'shop-card';
+                    let label = 'Use Item'; if (item.isConsumable) label = item.effect.type === 'health' ? '🍔 Consume' : '🥤 Drink'; else if (item.isVehicle) label = item.isEquipped ? '✅ EQUIPPED' : '🏎️ Equip Vehicle'; else if (item.isWeapon) label = item.isEquipped ? '✅ EQUIPPED' : '🔫 Equip Weapon';
+                    card.innerHTML = `<div class="item-icon">${item.icon}</div><div class="item-name">${item.name}</div><div class="item-desc">${item.desc}</div><button class="menu-btn ${item.isEquipped ? 'accent' : 'primary'}" style="margin-top: 8px;">${label}</button>`;
+                    card.querySelector('button').addEventListener('click', () => onActionCallback(item)); grid.appendChild(card);
+                });
+            }
+            renderGarage(gameState, shopSystem, onSelectCallback) {
+                const list = document.getElementById('garage-vehicles-list'); list.innerHTML = '';
+                if (gameState.ownedVehicles.length === 0) { list.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">No vehicles in garage. Visit the City Shop to buy one!</p>'; return; }
+                gameState.ownedVehicles.forEach(vehId => {
+                    const item = shopSystem.getItemById(vehId); if (!item) return; const isEquipped = gameState.equippedVehicle === vehId;
+                    const card = document.createElement('div'); card.className = 'shop-card';
+                    card.innerHTML = `<div class="item-icon">${item.icon}</div><div class="item-name">${item.name}</div><div class="item-desc">${item.desc}</div><button class="menu-btn ${isEquipped ? 'accent' : 'primary'}" style="margin-top: 8px;">${isEquipped ? '✅ Currently Driving' : '🏎️ Drive Vehicle'}</button>`;
+                    card.querySelector('button').addEventListener('click', () => onSelectCallback(vehId)); list.appendChild(card);
+                });
+            }
+            renderMissions(missionSystem) {
+                const list = document.getElementById('missions-list'); list.innerHTML = '';
+                missionSystem.missions.forEach(m => {
+                    const item = document.createElement('div'); item.className = 'shop-card';
+                    item.innerHTML = `<div class="item-name">${m.completed ? '✅' : '📜'} ${m.title}</div><div class="item-desc">${m.description}</div><div class="item-buy-row" style="margin-top: 6px;"><span style="font-size: 0.8rem; color: #00f2fe;">Progress: ${m.progress}/${m.targetAmount}</span><span class="item-price">🪙 +${m.rewardCoins}</span></div>`;
+                    list.appendChild(item);
+                });
+            }
+        }
+
+        // 19. MAIN GAME MANAGER
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas'); this.ctx = this.canvas.getContext('2d');
+                this.resize(); window.addEventListener('resize', () => this.resize());
+                this.groundY = this.canvas.height - 70;
+                this.input = new Input(); this.camera = new Camera(this.canvas.width, this.canvas.height); this.audio = new SoundEngine(); this.saveSystem = new SaveSystem();
+                this.shopSystem = new ShopSystem(); this.inventorySystem = new InventorySystem(); this.healthFoodSystem = new HealthFoodSystem(); this.missionSystem = new MissionSystem();
+                this.weatherSystem = new WeatherSystem(); this.deliveryJobSystem = new DeliveryJobSystem(); this.policeChaseSystem = new PoliceChaseSystem(); this.ui = new UIController();
+                this.gameState = this.saveSystem.load();
+                const spawnX = this.gameState.playerX || 100; this.player = new Player(spawnX, this.groundY - 64); this.player.groundY = this.groundY;
+                if (this.gameState.health) this.player.health = this.gameState.health; if (this.gameState.maxHealth) this.player.maxHealth = this.gameState.maxHealth;
+                if (this.gameState.energy) this.player.energy = this.gameState.energy; if (this.gameState.maxEnergy) this.player.maxEnergy = this.gameState.maxEnergy;
+                if (this.gameState.equippedVehicle) this.inventorySystem.equipVehicle(this.gameState.equippedVehicle, this.player, this.gameState);
+                this.camera.follow(this.player); this.city = new City(this.groundY);
+                this.coins = []; this.obstacles = []; this.vehicles = []; this.npcs = []; this.initWorldEntities();
+                this.lastTime = performance.now(); this.state = 'PLAYING'; this.initUIListeners();
+                requestAnimationFrame((t) => this.loop(t));
+            }
+            resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; this.groundY = this.canvas.height - 70; if (this.camera) this.camera.setViewport(this.canvas.width, this.canvas.height); if (this.player) this.player.groundY = this.groundY; if (this.city) this.city.groundY = this.groundY; }
+            initWorldEntities() {
+                for (let x = 300; x < 20000; x += 100) {
+                    const r = Math.random();
+                    if (r < 0.35) this.coins.push(new Coin(x, this.groundY - 30, 'gold'));
+                    else if (r < 0.5) this.coins.push(new Coin(x, this.groundY - 30, 'silver'));
+                    else if (r < 0.65) this.coins.push(new Coin(x, this.groundY - 30 - Math.sin((x % 300) / 300 * Math.PI) * 90, r > 0.6 ? 'diamond' : 'gold'));
+                    else if (r > 0.96) this.coins.push(new Coin(x, this.groundY - 140, 'chest'));
+                }
+                const obstacleTypes = ['barrier', 'pothole', 'traffic_cone', 'overhead_pipe', 'car', 'moving_car'];
+                for (let x = 600; x < 20000; x += 380 + Math.random() * 260) {
+                    const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)]; let y = this.groundY - 50; let speed = 0;
+                    if (type === 'pothole') y = this.groundY - 10; else if (type === 'overhead_pipe') y = this.groundY - 95; else if (type === 'moving_car') speed = (Math.random() > 0.5 ? -1 : 1) * (100 + Math.random() * 80);
+                    this.obstacles.push(new Obstacle(x, y, type, speed));
+                }
+                for (let x = 400; x < 20000; x += 500 + Math.random() * 400) this.npcs.push(new NPC(x, this.groundY - 58));
+                this.vehicles.push(new Vehicle(800, this.groundY - 40, 'bicycle')); this.vehicles.push(new Vehicle(3200, this.groundY - 45, 'motorcycle')); this.vehicles.push(new Vehicle(6200, this.groundY - 50, 'car')); this.vehicles.push(new Vehicle(9200, this.groundY - 50, 'sportscar'));
+            }
+            initUIListeners() {
+                document.getElementById('btn-pause').addEventListener('click', () => this.togglePause()); document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
+                document.getElementById('btn-audio').addEventListener('click', () => { const m = this.audio.toggleMute(); document.getElementById('btn-audio').textContent = m ? '🔇' : '🔊'; });
+                document.getElementById('btn-shop-menu').addEventListener('click', () => this.openShop()); document.getElementById('btn-inventory-menu').addEventListener('click', () => this.openInventory());
+                document.getElementById('btn-missions-menu').addEventListener('click', () => this.openMissions()); document.getElementById('btn-garage-menu').addEventListener('click', () => this.openGarage());
+                document.querySelectorAll('.btn-close-modal').forEach(btn => { btn.addEventListener('click', (e) => { this.ui.toggleModal(e.target.closest('.modal-overlay'), false); if (this.state === 'PAUSED') this.state = 'PLAYING'; }); });
+                document.querySelectorAll('.shop-tabs .tab-btn').forEach(btn => { btn.addEventListener('click', (e) => { document.querySelectorAll('.shop-tabs .tab-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); this.ui.renderShop(this.shopSystem, this.gameState, (id) => this.handleBuy(id)); }); });
+                document.querySelectorAll('.inventory-tabs .tab-btn').forEach(btn => { btn.addEventListener('click', (e) => { document.querySelectorAll('.inventory-tabs .tab-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); this.ui.renderInventory(this.inventorySystem, this.gameState, this.shopSystem, (item) => this.handleInventoryAction(item)); }); });
+                document.getElementById('btn-save-game').addEventListener('click', () => { this.gameState.playerX = Math.floor(this.player.x); this.gameState.playerY = Math.floor(this.player.y); this.gameState.health = Math.floor(this.player.health); this.gameState.maxHealth = this.player.maxHealth; this.gameState.energy = Math.floor(this.player.energy); this.gameState.maxEnergy = this.player.maxEnergy; this.saveSystem.save(this.gameState); this.ui.showToast('💾 Progress & Location Saved!'); });
+                document.getElementById('btn-respawn').addEventListener('click', () => this.respawnPlayer());
+            }
+            togglePause() { if (this.state === 'PLAYING') { this.state = 'PAUSED'; this.ui.toggleModal(this.ui.pauseModal, true); } else if (this.state === 'PAUSED') { this.state = 'PLAYING'; this.ui.toggleModal(this.ui.pauseModal, false); this.ui.toggleModal(this.ui.shopModal, false); this.ui.toggleModal(this.ui.inventoryModal, false); this.ui.toggleModal(this.ui.missionsModal, false); } }
+            openShop() { this.state = 'PAUSED'; this.ui.toggleModal(this.ui.pauseModal, false); this.ui.toggleModal(this.ui.shopModal, true); this.ui.renderShop(this.shopSystem, this.gameState, (id) => this.handleBuy(id)); }
+            openShopTab(tabName) { document.querySelectorAll('.shop-tabs .tab-btn').forEach(b => { if (b.dataset.tab === tabName) b.classList.add('active'); else b.classList.remove('active'); }); this.openShop(); }
+            openInventory() { this.state = 'PAUSED'; this.ui.toggleModal(this.ui.pauseModal, false); this.ui.toggleModal(this.ui.inventoryModal, true); this.ui.renderInventory(this.inventorySystem, this.gameState, this.shopSystem, (item) => this.handleInventoryAction(item)); }
+            openMissions() { this.state = 'PAUSED'; this.ui.toggleModal(this.ui.pauseModal, false); this.ui.toggleModal(this.ui.missionsModal, true); this.ui.renderMissions(this.missionSystem); }
+            openGarage() { this.state = 'PAUSED'; this.ui.toggleModal(this.ui.pauseModal, false); this.ui.toggleModal(this.ui.garageModal, true); this.ui.renderGarage(this.gameState, this.shopSystem, (vehId) => { const msg = this.inventorySystem.equipVehicle(vehId, this.player, this.gameState); this.ui.showToast(msg); this.saveSystem.save(this.gameState); this.ui.renderGarage(this.gameState, this.shopSystem, (v) => this.openGarage()); }); }
+            handleBuy(itemId) { const res = this.shopSystem.buyItem(itemId, this.gameState, this.audio); this.ui.showToast(res.message); if (res.success) { this.ui.renderShop(this.shopSystem, this.gameState, (id) => this.handleBuy(id)); this.saveSystem.save(this.gameState); } }
+            handleInventoryAction(item) { if (item.isConsumable) { if (this.inventorySystem.useFoodItem(item.invIndex, this.player, this.gameState, this.shopSystem, this.audio)) this.ui.showToast(`Consumed ${item.name}!`); } else if (item.isVehicle) { this.ui.showToast(this.inventorySystem.equipVehicle(item.id, this.player, this.gameState)); } else if (item.isWeapon) { this.ui.showToast(this.inventorySystem.equipWeapon(item.id, this.gameState)); } this.saveSystem.save(this.gameState); this.ui.renderInventory(this.inventorySystem, this.gameState, this.shopSystem, (it) => this.handleInventoryAction(it)); }
+            respawnPlayer() { this.player.health = this.player.maxHealth; this.player.energy = this.player.maxEnergy; this.player.isAlive = true; this.player.state = 'IDLE'; this.player.x = 100; this.player.y = this.groundY - 64; this.state = 'PLAYING'; this.ui.toggleModal(this.ui.gameoverModal, false); }
+            loop(timestamp) { const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1); this.lastTime = timestamp; this.update(dt); this.render(); requestAnimationFrame((t) => this.loop(t)); }
+            update(dt) {
+                if (this.input.justPressed.pause) this.togglePause(); if (this.input.justPressed.shop) this.openShop(); if (this.input.justPressed.inventory) this.openInventory(); if (this.input.justPressed.missions) this.openMissions();
+                if (this.state !== 'PLAYING') { this.input.update(); return; }
+                this.player.update(dt, this.input, this.audio);
+                if ((this.input.keys.left || this.input.keys.right || this.input.keys.jump) && !this.audio.isPlayingBgm) this.audio.startBgm();
+                this.audio.updateEngineSound(!!this.player.currentVehicle, Math.abs(this.player.vx) / 320);
+                if (!this.player.isAlive && this.state !== 'GAME_OVER') { this.state = 'GAME_OVER'; document.getElementById('go-coins').textContent = this.gameState.coins; document.getElementById('go-distance').textContent = `${Math.floor(this.player.x / 10)}m`; this.ui.toggleModal(this.ui.gameoverModal, true); }
+                this.camera.update(dt);
+                const viewMinX = this.camera.x - 200; const viewMaxX = this.camera.x + this.canvas.width + 200;
+                this.coins.forEach(c => { if (c.x >= viewMinX && c.x <= viewMaxX) { const earned = c.update(dt, this.player, this.audio); if (earned > 0) { this.gameState.coins += earned; this.ui.showCoinPopup(earned); this.saveSystem.save(this.gameState); } } });
+                this.obstacles.forEach(o => { if (o.x >= viewMinX && o.x <= viewMaxX) o.update(dt, this.player, this.audio, this.camera); });
+                this.npcs.forEach(n => { if (n.x >= viewMinX && n.x <= viewMaxX) n.update(dt, this.player, this.gameState); });
+                this.healthFoodSystem.update(dt, this.player); this.weatherSystem.update(dt); this.deliveryJobSystem.update(dt, this.player, this.gameState, this.ui, this.audio); this.policeChaseSystem.update(dt, this.player, this.audio, this.camera);
+                const heatBadge = document.getElementById('heat-badge'); if (heatBadge) { if (this.policeChaseSystem.heatLevel > 0) { heatBadge.classList.remove('hidden'); heatBadge.textContent = `🚔 HEAT ${this.policeChaseSystem.heatLevel}`; } else heatBadge.classList.add('hidden'); }
+                if (!this.survivalTimer) this.survivalTimer = 0; this.survivalTimer += dt;
+                const currentDistrict = this.city.checkDistrictChange(this.player.x, this.ui);
+                this.missionSystem.checkProgress(this.gameState, this.player.x / 10, this.survivalTimer, currentDistrict, this.ui);
+                const isNearShop = currentDistrict.id === 'shopping' || (this.player.x >= 3000 && this.player.x <= 6000);
+                const isNearDiner = currentDistrict.id === 'food' || (this.player.x >= 6000 && this.player.x <= 9000);
+                let nearVehicle = null; this.vehicles.forEach(v => { if (v.isPlayerNear(this.player)) nearVehicle = v; v.update(dt, this.player); });
+                if (this.player.currentVehicle) { this.ui.setPrompt(true, 'Dismount Vehicle'); if (this.input.justPressed.interact) { this.inventorySystem.equipVehicle(this.player.currentVehicle, this.player, this.gameState); this.ui.showToast('Dismounted vehicle!'); } }
+                else if (nearVehicle) { this.ui.setPrompt(true, `Drive ${nearVehicle.name}`); if (this.input.justPressed.interact) { this.inventorySystem.equipVehicle(nearVehicle.type, this.player, this.gameState); this.ui.showToast(`Mounted ${nearVehicle.name}!`); } }
+                else if (isNearDiner) { this.ui.setPrompt(true, 'Order Food at Diner'); if (this.input.justPressed.interact) this.openShopTab('food'); }
+                else if (isNearShop) { this.ui.setPrompt(true, 'Open City Shop'); if (this.input.justPressed.interact) this.openShop(); }
+                else this.ui.setPrompt(false);
+                this.ui.updateHUD(this.player, this.gameState, currentDistrict.name, this.missionSystem.getActiveMission());
+                this.input.update();
+            }
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                const viewMinX = this.camera.x - 200; const viewMaxX = this.camera.x + this.canvas.width + 200;
+                this.city.render(this.ctx, this.camera);
+                this.coins.forEach(c => { if (c.x >= viewMinX && c.x <= viewMaxX) c.render(this.ctx, this.camera); });
+                this.obstacles.forEach(o => { if (o.x >= viewMinX && o.x <= viewMaxX) o.render(this.ctx, this.camera); });
+                this.vehicles.forEach(v => { if (v.x >= viewMinX && v.x <= viewMaxX) v.render(this.ctx, this.camera); });
+                this.npcs.forEach(n => { if (n.x >= viewMinX && n.x <= viewMaxX) n.render(this.ctx, this.camera); });
+                this.deliveryJobSystem.renderMarker(this.ctx, this.camera);
+                this.policeChaseSystem.render(this.ctx, this.camera);
+                this.player.render(this.ctx, this.camera);
+                this.weatherSystem.renderRain(this.ctx, this.camera);
+            }
+        }
+
+        // START GAME ON DOM READY
+        window.addEventListener('DOMContentLoaded', () => { window.game = new Game(); });
+    </script>
+</body>
+</html>
